@@ -1,4 +1,4 @@
-module slmmzx.xyz/gbv
+module github.com/gbv
 
 go 1.14
 

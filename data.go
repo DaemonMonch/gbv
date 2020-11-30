@@ -1,4 +1,4 @@
-package gbv
+package main
 
 type MeterNames struct {
 	Names []string

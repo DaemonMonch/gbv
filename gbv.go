@@ -1,4 +1,4 @@
-package gbv
+package main
 
 import (
 	"flag"
@@ -11,7 +11,7 @@ var metricsAddress = flag.String("a", "localhost:8080", "metrics address")
 var metricsPath = flag.String("p", "/actuator/metrics", "metrics path")
 var debug = flag.Bool("vv", false, "verbose output")
 
-func Init() {
+func main() {
 	flag.Parse()
 	client := NewClient(*metricsAddress, *metricsPath)
 	g, err := gocui.NewGui(gocui.OutputNormal)
