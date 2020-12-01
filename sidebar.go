@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"fmt"
 	"github.com/jroimartin/gocui"
 )
@@ -8,11 +9,15 @@ import (
 type SideBar struct {
 	view       *gocui.View
 	meterNames []string
+
+	eventBus eventBus
 }
 
-func newSideBar(view *gocui.View, meterNames []string) *SideBar {
-
-	return &SideBar{view, meterNames}
+func newSideBar(view *gocui.View, eventBus eventBus ,meterNames []string) *SideBar {
+	
+	sideBar := &SideBar{view, meterNames,eventBus}
+	eventBus.regist(sideBar)
+	return sideBar
 }
 
 func (sideBar *SideBar) init(g *gocui.Gui) error {
@@ -31,7 +36,19 @@ func (sideBar *SideBar) init(g *gocui.Gui) error {
 	if err := g.SetKeybinding(sideBar.view.Name(), gocui.KeyArrowUp, gocui.ModNone, curUp); err != nil {
 		return err
 	}
+	if err := g.SetKeybinding(sideBar.view.Name(), gocui.KeyEnter, gocui.ModNone, sideBar.onKeyEnter); err != nil {
+		return err
+	}
 
+	return nil
+}
+
+func (s *SideBar) onKeyEnter(g *gocui.Gui, v *gocui.View) error {
+	l := getLine(g,v)
+	if l != "" {
+		log.Println(l)
+		s.eventBus.pub(event{e:l,t:METER_NAME_CHANGED})
+	}
 	return nil
 }
 
@@ -74,4 +91,8 @@ func  getLine(g *gocui.Gui, v *gocui.View) string {
 		l = ""
 	}
 	return l
+}
+
+func  (s *SideBar) subscribe(evt event) {
+
 }

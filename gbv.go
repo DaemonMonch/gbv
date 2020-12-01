@@ -1,8 +1,10 @@
 package main
 
 import (
+	// "context"
 	"flag"
 	"log"
+	"os"
 
 	"github.com/jroimartin/gocui"
 )
@@ -11,10 +13,46 @@ var metricsAddress = flag.String("a", "localhost:8080", "metrics address")
 var metricsPath = flag.String("p", "/actuator/metrics", "metrics path")
 var debug = flag.Bool("vv", false, "verbose output")
 
+// type viewUpdater struct {
+// 	cancelFunc context.CancelFunc
+
+// 	q <-chan int8
+// }
+
+// func newViewUpdater(g *gocui.Gui) *viewUpdater {
+// 	vu := &viewUpdater{}
+// 	ctx,cancelFunc := context.WithCancel(context.Background())
+// 	vu.cancelFunc = cancelFunc
+// 	vu.q = make(<-chan int8,0)
+// 	go func() {
+// 		for {
+// 			select {
+// 			case <- ctx.Done():
+// 				return
+// 			case <- vu.q:
+// 				g.UP
+// 			}
+// 		}
+// 	}
+
+// }
+
+// func (vu *viewUpdater) subscribe(evt event) {
+
+// }
+
 func main() {
 	flag.Parse()
 	client := NewClient(*metricsAddress, *metricsPath)
+	eventBus := newEventBus()
 	g, err := gocui.NewGui(gocui.OutputNormal)
+	if *debug {
+		f, err := os.OpenFile(".log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+		log.SetOutput(f)
+	}
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -26,7 +64,7 @@ func main() {
 	if err != nil {
 		log.Panicln(err)
 	}
-	g.SetManagerFunc(layoutFunc(meternames))
+	g.SetManagerFunc(layoutFunc(client, eventBus, meternames))
 	if err := keybindings(g); err != nil {
 		log.Panicln(err)
 	}
@@ -86,7 +124,7 @@ func meterNamesMaxLen(names []string) int {
 	return l
 }
 
-func layoutFunc(meterNames *MeterNames) func(g *gocui.Gui) error {
+func layoutFunc(client *Client, eventBus eventBus, meterNames *MeterNames) func(g *gocui.Gui) error {
 	meterNamesBottomX := meterNamesMaxLen(meterNames.Names)
 	if meterNamesBottomX == 0 {
 		meterNamesBottomX = 30
@@ -98,28 +136,19 @@ func layoutFunc(meterNames *MeterNames) func(g *gocui.Gui) error {
 			if err != gocui.ErrUnknownView {
 				return err
 			}
-			sideBar := newSideBar(v, meterNames.Names)
+			sideBar := newSideBar(v, eventBus, meterNames.Names)
 			sideBar.init(g)
 			if _, err := g.SetCurrentView("side"); err != nil {
 				return err
 			}
 		}
-		_ = maxX
-		// if v, err := g.SetView("main", 30, -1, maxX, maxY); err != nil {
-		//         if err != gocui.ErrUnknownView {
-		//                 return err
-		//         }
-		//         b, err := ioutil.ReadFile("Mark.Twain-Tom.Sawyer.txt")
-		//         if err != nil {
-		//                 panic(err)
-		//         }
-		//         fmt.Fprintf(v, "%s", b)
-		//         v.Editable = true
-		//         v.Wrap = true
-		//         if _, err := g.SetCurrentView("main"); err != nil {
-		//                 return err
-		//         }
-		// }
+		if v, err := g.SetView("summary", meterNamesBottomX, 1, maxX-1, 10); err != nil {
+			if err != gocui.ErrUnknownView {
+				return err
+			}
+			_ = newSummary(v, nil, client, eventBus)
+
+		}
 		return nil
 	}
 }
