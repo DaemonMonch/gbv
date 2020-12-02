@@ -13,42 +13,6 @@ var metricsPath = flag.String("p", "/actuator/metrics", "metrics path")
 var debug = flag.Bool("vv", false, "verbose output")
 var eb = newEventBus()
 
-// type viewUpdater struct {
-// 	cancelFunc context.CancelFunc
-// 	q          chan int8
-// }
-
-// func newViewUpdater(g *gocui.Gui) *viewUpdater {
-// 	vu := &viewUpdater{}
-// 	ctx, cancelFunc := context.WithCancel(context.Background())
-// 	vu.q = make(chan int8, 0)
-// 	vu.cancelFunc = cancelFunc
-// 	go func() {
-// 		defer cancelFunc()
-// 		for {
-// 			select {
-// 			case <-ctx.Done():
-// 				log.Println("viewUpdater exit!")
-// 				return
-// 			case <-vu.q:
-// 				// g.Update(func(g *gocui.Gui) error {
-// 				// 	return nil
-// 				// })
-// 			}
-// 		}
-// 	}()
-// 	return vu
-// }
-
-// func (vu *viewUpdater) subscribe(evt event) {
-// 	if evt.t == REQUEST_UPDATE_VIEW {
-// 		vu.q <- int8(1)
-// 	}
-
-// 	if evt.t == STOP {
-// 		vu.cancelFunc()
-// 	}
-// }
 
 func main() {
 	flag.Parse()

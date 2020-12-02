@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"net/url"
 )
 
 type Client struct {
@@ -39,12 +40,13 @@ func (client *Client) Names() (*MeterNames, error) {
 func (client *Client) Meter(ctx context.Context, meterName string, tags ...string) (*Meter, error) {
 	var tagParams string
 	if len(tags) > 0 {
-		sb := bytes.NewBufferString(fmt.Sprintf("tag=%s&", tags[0]))
+		sb := bytes.NewBufferString(fmt.Sprintf("tag=%s&", url.QueryEscape(tags[0])))
 		for i := 1; i < len(tags); i++ {
-			sb.WriteString(fmt.Sprintf("tag=%s&", tags[i]))
+			sb.WriteString(fmt.Sprintf("tag=%s&", url.QueryEscape(tags[i])))
 		}
 		tagParams = sb.String()
 	}
+	
 	url := fmt.Sprintf("%s/%s?%s", client.MetricsUrl, meterName, tagParams)
 	log.Println("url=", url)
 	request, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody)

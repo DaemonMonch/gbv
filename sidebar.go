@@ -9,6 +9,7 @@ import (
 
 type SideBar struct {
 	meterNames []string
+	enterEnabled bool
 
 	g        *gocui.Gui
 	eventBus eventBus
@@ -17,7 +18,7 @@ type SideBar struct {
 
 func newSideBar(g *gocui.Gui, client *Client, eventBus eventBus) *SideBar {
 
-	sideBar := &SideBar{g: g, client: client, eventBus: eventBus}
+	sideBar := &SideBar{g: g, client: client, eventBus: eventBus,enterEnabled:true}
 	eventBus.regist(sideBar)
 	return sideBar
 }
@@ -47,7 +48,8 @@ func meterNamesMaxLen(names []string) int {
 func (s *SideBar) onKeyEnter(g *gocui.Gui, v *gocui.View) error {
 	log.Println("on key ender")
 	l := getLine(g, v)
-	if l != "" {
+	if l != "" && s.enterEnabled {
+		s.enterEnabled = false
 		s.eventBus.pub(event{e: l, t: METER_NAME_CHANGED})
 	}
 	return nil
@@ -122,5 +124,7 @@ func (s *SideBar) Layout(g *gocui.Gui) error {
 }
 
 func (s *SideBar) subscribe(evt event) {
-
+	if evt.t == CLIENT_REQUEST_DONE {
+		s.enterEnabled = true
+	}
 }

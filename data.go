@@ -13,7 +13,7 @@ type Meter struct {
 }
 
 func (m *Meter) flattenTags() []string {
-	arr := make([]string,len(m.AvailableTags))
+	arr := make([]string,0)
 	for _, tag := range m.AvailableTags {
 		arr = append(arr,tag.flatten()...)
 	}

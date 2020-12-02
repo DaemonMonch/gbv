@@ -1,8 +1,8 @@
 package main
 
 import (
-	"sync"
 	"log"
+	"sync"
 )
 
 type evtType int8
@@ -10,7 +10,8 @@ type evtType int8
 const (
 	METER_NAME_CHANGED  evtType = 1
 	REQUEST_UPDATE_VIEW evtType = 2
-	STOP                evtType = 3
+	CLIENT_REQUEST_DONE evtType = 3
+	STOP                evtType = 99
 )
 
 type event struct {
