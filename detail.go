@@ -5,9 +5,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
+
+	// "strconv"
+	"sort"
 	"strings"
 	"sync"
+	"text/tabwriter"
 	"time"
 
 	"github.com/jroimartin/gocui"
@@ -76,20 +79,27 @@ func (s *detail) updateTag(meterName string, meter *Meter) {
 	}
 
 	timer := time.NewTimer(2 * time.Second)
-	sb := bytes.NewBufferString("")
+	// sb := bytes.NewBufferString("")
+	lines := make([]string, 0)
 	for {
 		select {
 		case <-timer.C:
 			cancelFunc()
 			close(rc)
 			// log.Println(sb.String())
+			sort.Strings(lines)
 			s.g.Update(func(g *gocui.Gui) error {
 				v, err := g.View("tags")
 				if err != nil {
 					// handle error
 				}
 				v.Clear()
-				fmt.Fprint(v, sb.String())
+				tw := tabwriter.NewWriter(v, 0, 0, 1, '\t', tabwriter.AlignRight)
+				for _, line := range lines {
+					fmt.Fprintln(tw, line)
+				}
+				tw.Flush()
+
 				return nil
 			})
 			return
@@ -101,20 +111,26 @@ func (s *detail) updateTag(meterName string, meter *Meter) {
 			} else {
 				m := v.(TagMeter)
 				for _, me := range m.meter.Measurements {
-					ss := s.expandStrings(m.tag, me.Statistic, strconv.FormatFloat(me.Value, 'f', 3, 64))
-					log.Println(ss)
-					sb.WriteString(ss + "\n")
+					// ss := s.expandStrings(m.tag, me.Statistic, strconv.FormatFloat(me.Value, 'f', 3, 64))
+					// log.Println(ss)
+					// sb.WriteString(ss + "\n")
+					lines = append(lines, fmt.Sprintf("%s\t%s\t%f\t", m.tag, me.Statistic, me.Value))
 				}
 			}
 
 			if c == 0 {
+				sort.Strings(lines)
 				s.g.Update(func(g *gocui.Gui) error {
 					v, err := g.View("tags")
 					if err != nil {
 						// handle error
 					}
 					v.Clear()
-					fmt.Fprint(v, sb.String())
+					tw := tabwriter.NewWriter(v, 10, 5, 5, ' ', 0)
+					for _, line := range lines {
+						fmt.Fprintln(tw, line)
+					}
+					tw.Flush()
 					return nil
 				})
 				return
