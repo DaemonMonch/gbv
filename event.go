@@ -11,6 +11,7 @@ const (
 	METER_NAME_CHANGED  evtType = 1
 	REQUEST_UPDATE_VIEW evtType = 2
 	CLIENT_REQUEST_DONE evtType = 3
+	FETCH_METER_DETAILS evtType = 4
 	STOP                evtType = 99
 )
 
