@@ -62,10 +62,22 @@ func (s *detail) subscribe(evt event) {
 	}
 }
 func (s *detail) updateTag(meterName string, meter *Meter) {
+	
 	ctx, cancelFunc := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancelFunc()
 	tags := meter.flattenTags()
 	c := len(tags)
+	if c > 0 {
+		s.g.Update(func(g *gocui.Gui) error {
+		v, err := g.View("tags")
+		if err != nil {
+			// handle error
+		}
+		v.Clear()
+		fmt.Fprint(v, "Loading....")
+		return nil
+	})
+	}
 	rc := make(chan interface{}, c)
 	for _, tag := range tags {
 		go func(tag string) {
@@ -86,58 +98,55 @@ func (s *detail) updateTag(meterName string, meter *Meter) {
 		case <-timer.C:
 			cancelFunc()
 			close(rc)
-			// log.Println(sb.String())
-			sort.Strings(lines)
-			s.g.Update(func(g *gocui.Gui) error {
-				v, err := g.View("tags")
-				if err != nil {
-					// handle error
-				}
-				v.Clear()
-				tw := tabwriter.NewWriter(v, 0, 0, 1, '\t', tabwriter.AlignRight)
-				for _, line := range lines {
-					fmt.Fprintln(tw, line)
-				}
-				tw.Flush()
-
-				return nil
-			})
+			s.g.Update(updateViewFunc(lines, meter))
 			return
 		case v := <-rc:
 			c--
 			if _, ok := v.(error); ok {
-				//sb.WriteString(fmt.Sprintf("%s %s\n", m.Statistic, err.Error()))
-
-			} else {
-				m := v.(TagMeter)
-				for _, me := range m.meter.Measurements {
-					// ss := s.expandStrings(m.tag, me.Statistic, strconv.FormatFloat(me.Value, 'f', 3, 64))
-					// log.Println(ss)
-					// sb.WriteString(ss + "\n")
-					lines = append(lines, fmt.Sprintf("%s\t%s\t%f\t", m.tag, me.Statistic, me.Value))
-				}
-			}
-
-			if c == 0 {
-				sort.Strings(lines)
 				s.g.Update(func(g *gocui.Gui) error {
 					v, err := g.View("tags")
 					if err != nil {
 						// handle error
 					}
 					v.Clear()
-					tw := tabwriter.NewWriter(v, 10, 5, 5, ' ', 0)
-					for _, line := range lines {
-						fmt.Fprintln(tw, line)
-					}
-					tw.Flush()
 					return nil
 				})
+			} else {
+				m := v.(TagMeter)
+				for _, me := range m.meter.Measurements {
+					lines = append(lines, fmt.Sprintf("%s\t%s\t%.1f\t", m.tag, me.Statistic, me.Value))
+				}
+			}
+
+			if c == 0 {
+				s.g.Update(updateViewFunc(lines, meter))
 				return
 			}
 		}
 	}
 
+}
+
+func updateViewFunc(lines []string, meter *Meter) func(g *gocui.Gui) error {
+	sort.Strings(lines)
+	return func(g *gocui.Gui) error {
+		v, err := g.View("tags")
+		if err != nil {
+			// handle error
+		}
+		if meter.BaseUnit != "" {
+			v.Title = " statics (base unit:" + meter.BaseUnit + ")"
+		} else {
+			v.Title = " statics"
+		}
+		v.Clear()
+		tw := tabwriter.NewWriter(v, 10, 5, 5, ' ', 0)
+		for _, line := range lines {
+			fmt.Fprintln(tw, line)
+		}
+		tw.Flush()
+		return nil
+	}
 }
 
 func (s *detail) updateSummary(meter *Meter) {
@@ -165,14 +174,15 @@ func (s *detail) Layout(g *gocui.Gui) error {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		sView.Title = "summary"
+		sView.Title = " summary"
 
 	}
 	if tagsView, err := g.SetView("tags", meterNamesBottomX, 10, maxX-1, maxY-1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
-		tagsView.Title = "statics"
+		tagsView.Title = " statics"
+
 	}
 
 	s.width = maxX - 1 - meterNamesBottomX
